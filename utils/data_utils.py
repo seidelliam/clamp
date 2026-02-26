@@ -25,6 +25,17 @@ if not hasattr(cv2, "CV_32F"):
 if not hasattr(cv2, "CV_64F"):
     cv2.CV_64F = 6
 
+# opencv-python-headless can omit cv2.multiply; provide fallback (used by albumentations).
+if not hasattr(cv2, "multiply"):
+    def _cv2_multiply(src1, src2, dst=None, scale=1, dtype=-1):
+        a, b = np.asarray(src1), np.asarray(src2)
+        out = np.clip(a.astype(np.float64) * b.astype(np.float64) * scale, 0, 255).astype(a.dtype)
+        if dst is not None:
+            np.copyto(dst, out)
+            return dst
+        return out
+    cv2.multiply = _cv2_multiply
+
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 import urllib.request

@@ -12,6 +12,16 @@ for _name, _val in [("CV_8U", 0), ("CV_8S", 1), ("CV_16U", 2), ("CV_16S", 3), ("
     if not hasattr(cv2, _name):
         setattr(cv2, _name, _val)
 
+if not hasattr(cv2, "multiply"):
+    def _cv2_multiply(src1, src2, dst=None, scale=1, dtype=-1):
+        a, b = np.asarray(src1), np.asarray(src2)
+        out = np.clip(a.astype(np.float64) * b.astype(np.float64) * scale, 0, 255).astype(a.dtype)
+        if dst is not None:
+            np.copyto(dst, out)
+            return dst
+        return out
+    cv2.multiply = _cv2_multiply
+
 import torch.utils.data as data
 from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder
