@@ -328,14 +328,19 @@ def train_clamp(model:pl.LightningModule, train_loader: torch.utils.data.DataLoa
     tensorboard_logger = TensorBoardLogger(os.path.join(checkpoint_path,"logs"), name="tensorboard",version=logger_version)
 
     sync_batchnrom = True if gpus_per_node*num_nodes > 1 else False
+    use_gpu = torch.cuda.is_available()
+    accelerator = "gpu" if use_gpu else "cpu"
+    devices = gpus_per_node if use_gpu else 1
+    # DDP/Gloo is not supported on CPU or single device on Windows; use auto for single-process
+    effective_strategy = strategy if (use_gpu and devices * num_nodes > 1) else "auto"
     trainer = pl.Trainer(default_root_dir=checkpoint_path,
                          logger=[csv_logger, tensorboard_logger],
-                         accelerator="gpu",
-                         devices=gpus_per_node,
+                         accelerator=accelerator,
+                         devices=devices,
                          num_nodes=num_nodes,
                          sync_batchnorm=sync_batchnrom,
                          precision=precision,
-                         strategy=strategy,
+                         strategy=effective_strategy,
                          max_epochs=max_epochs,
                          callbacks=[pl.callbacks.ModelCheckpoint(save_top_k = -1,
                                                                   save_last = True,
@@ -520,12 +525,16 @@ def train_lc(linear_model:pl.LightningModule,
     logger_version = 0
     csv_logger = CSVLogger(os.path.join(checkpoint_path,"logs"), name="csv",version=logger_version)
     tensorboard_logger = TensorBoardLogger(os.path.join(checkpoint_path,"logs"), name="tensorboard",version=logger_version)
+    use_gpu = torch.cuda.is_available()
+    accelerator = "gpu" if use_gpu else "cpu"
+    devices = gpus_per_node if use_gpu else 1
+    effective_strategy = strategy if (use_gpu and devices * num_nodes > 1) else "auto"
     trainer = pl.Trainer(default_root_dir=checkpoint_path,
                          logger=[csv_logger,tensorboard_logger],
-                         accelerator="gpu",
-                         devices=gpus_per_node,
+                         accelerator=accelerator,
+                         devices=devices,
                          num_nodes=num_nodes,
-                         strategy=strategy,
+                         strategy=effective_strategy,
                          max_epochs=max_epochs,
                          precision=precision,
                          callbacks=[pl.callbacks.ModelCheckpoint(monitor = "val_acc",
@@ -557,7 +566,7 @@ def train_lc(linear_model:pl.LightningModule,
     
     single_gpu_trainer = pl.Trainer(default_root_dir=checkpoint_path,
                          logger = None,
-                         accelerator="gpu",
+                         accelerator=accelerator,
                          devices=1,
                          num_nodes=1,
                          max_epochs=max_epochs,
@@ -733,12 +742,16 @@ def train_finetune(
     logger_version = 0
     csv_logger = CSVLogger(os.path.join(checkpoint_path,"logs"), name="csv",version=logger_version)
     tensorboard_logger = TensorBoardLogger(os.path.join(checkpoint_path,"logs"), name="tensorboard",version=logger_version)
+    use_gpu = torch.cuda.is_available()
+    accelerator = "gpu" if use_gpu else "cpu"
+    devices = gpus_per_node if use_gpu else 1
+    effective_strategy = strategy if (use_gpu and devices * num_nodes > 1) else "auto"
     trainer = pl.Trainer(default_root_dir=checkpoint_path,
                          logger=[csv_logger,tensorboard_logger],
-                         accelerator="gpu",
-                         devices=gpus_per_node,
+                         accelerator=accelerator,
+                         devices=devices,
                          num_nodes=num_nodes,
-                         strategy=strategy,
+                         strategy=effective_strategy,
                          max_epochs=max_epochs,
                          precision=precision,
                          callbacks=[pl.callbacks.ModelCheckpoint(monitor = "val_acc",

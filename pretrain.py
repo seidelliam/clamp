@@ -17,6 +17,11 @@ if __name__ == '__main__':
     config = helper.Config(input_dir, default_config_file)
     if config.INFO["fix_random_seed"]:
         pl.seed_everything(137) # To be reproducable
+    # CUDA check
+    if torch.cuda.is_available():
+        print(f"CUDA available: {torch.cuda.get_device_count()} GPU(s) — {torch.cuda.get_device_name(0)}")
+    else:
+        print("CUDA not available — training will use CPU.")
     # save the starting time as the last line of file staring-time.txt
     current_datetime,zone = helper.get_est_time_now()
     if os.path.isfile(os.path.join(input_dir,"starting-time.txt")):

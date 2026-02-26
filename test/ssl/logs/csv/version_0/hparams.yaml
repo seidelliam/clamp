@@ -1,0 +1,23 @@
+backbone_name: resnet18
+batch_size: 64
+eta: 0.001
+exclude_bn_bias_from_weight_decay: true
+loss_name: LogRepulsiveEllipsoidPackingLossUnitNorm
+lr: 3.75
+lw0: 0.0
+lw1: 1.0
+lw2: 0.0
+momentum: 0.0
+n_epochs: 1000
+n_views: 16
+optim_name: LARS
+pot_pow: 2.0
+proj_dim:
+- 2048
+proj_out_dim: 256
+prune: true
+rs: 7.0
+scheduler_name: cosine-warmup
+use_projection_head: true
+warmup_epochs: 20
+weight_decay: 0.0001

@@ -1,0 +1,18 @@
+# Core (Python 3.9+)
+numpy
+scipy
+matplotlib
+lmdb
+Pillow
+# Use opencv-python-headless on headless servers (e.g. Jupyter Hub) to avoid libGL.so.1 errors.
+# opencv-python-headless has no GUI/OpenGL deps; same API for imread, cvtColor, etc.
+opencv-python-headless
+
+# PyTorch 2.5.1 (install separately for CUDA: https://pytorch.org)
+torch>=2.0
+torchvision
+
+# Training
+pytorch-lightning>=2.4.0
+tensorboard
+albumentations>=1.4.24

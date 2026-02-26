@@ -61,9 +61,9 @@ All training configurations and parameters for these tasks are defined in a sing
 ## Self-supervised pretraining
 Use the following command to run the training:
 ```
-python pretrain.py /path/to/directory /path/to/default_config.ini
+python pretrain.py <path/to/directory> <path/to/default_config.ini>
 ```
-where we use config files(config_file.ini and default_config.ini) to specify the training setup and hyperparameters. /path/to/directory must contain the input configureation, config.ini (its name must be config.ini). Missing parameters in your_config.ini will be replaced by its default value specified in default_config.ini. Note that directory to your own imagenet training and validation dataset needs to be specified in either config.ini. PyTorch Lightning checkpoints and TensorBoard/CSV logging files are stored in /path/to/directory .
+The first argument must be a directory that contains your run config file named `config.ini`. The second argument is the path to a default config file (e.g. `default_configs/default_config_imagenet1k.ini` or `default_configs/default_config_cifar10.ini`). Missing parameters in your `config.ini` are filled from the default config. Paths to your ImageNet training and validation datasets must be set in `config.ini`. PyTorch Lightning checkpoints and TensorBoard/CSV logs are written to the same directory.
 
 ## Linear evaluation
 Once the pretraining is done, use the following command to load the pretrained model and conduct linear evaluation.

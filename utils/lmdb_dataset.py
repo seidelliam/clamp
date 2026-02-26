@@ -6,6 +6,12 @@ from io import BytesIO
 import lmdb
 import pickle
 import cv2
+
+# Ensure depth constants exist (opencv-python-headless can omit them).
+for _name, _val in [("CV_8U", 0), ("CV_8S", 1), ("CV_16U", 2), ("CV_16S", 3), ("CV_32S", 4), ("CV_32F", 5), ("CV_64F", 6)]:
+    if not hasattr(cv2, _name):
+        setattr(cv2, _name, _val)
+
 import torch.utils.data as data
 from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder

@@ -7,7 +7,24 @@ from torch.utils.data import random_split,Dataset
 from torchvision import datasets
 from torchvision.transforms import v2
 from .lmdb_dataset import ImageFolderLMDB
-import cv2 
+import cv2
+
+# Headless/opencv-python-headless can omit depth constants; patch for compatibility (e.g. albumentations).
+if not hasattr(cv2, "CV_8U"):
+    cv2.CV_8U = 0
+if not hasattr(cv2, "CV_8S"):
+    cv2.CV_8S = 1
+if not hasattr(cv2, "CV_16U"):
+    cv2.CV_16U = 2
+if not hasattr(cv2, "CV_16S"):
+    cv2.CV_16S = 3
+if not hasattr(cv2, "CV_32S"):
+    cv2.CV_32S = 4
+if not hasattr(cv2, "CV_32F"):
+    cv2.CV_32F = 5
+if not hasattr(cv2, "CV_64F"):
+    cv2.CV_64F = 6
+
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 import urllib.request
