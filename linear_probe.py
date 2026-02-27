@@ -17,6 +17,9 @@ if __name__ == '__main__':
     config = helper.Config(input_dir, default_config_file)
     if config.INFO["fix_random_seed"]:
         pl.seed_everything(137) # To be reproducable
+    # Optimize for Tensor Cores (A100, V100, etc.) - improves performance
+    if torch.cuda.is_available():
+        torch.set_float32_matmul_precision('high')
     # save the starting time as the last line of file staring-time.txt
     current_datetime,zone = helper.get_est_time_now()
     if os.path.isfile(os.path.join(input_dir,"starting-time.txt")):

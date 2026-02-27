@@ -20,6 +20,8 @@ if __name__ == '__main__':
     # CUDA check
     if torch.cuda.is_available():
         print(f"CUDA available: {torch.cuda.device_count()} GPU(s) — {torch.cuda.get_device_name(0)}")
+        # Optimize for Tensor Cores (A100, V100, etc.) - improves performance
+        torch.set_float32_matmul_precision('high')
     else:
         print("CUDA not available — training will use CPU.")
     # save the starting time as the last line of file staring-time.txt

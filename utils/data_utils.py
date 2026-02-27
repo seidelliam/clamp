@@ -489,15 +489,18 @@ def get_dataloader(info:dict,batch_size:int,num_workers:int,
     
     # Handle shared memory issues on Jupyter Hub/systems with limited /dev/shm
     # PyTorch uses shared memory for tensor collation even with pin_memory=False when num_workers > 0
-    # Check for environment variable override first
+    # Check for environment variable overrides
     force_single_worker = os.environ.get('CLAMP_FORCE_SINGLE_WORKER', '').lower() in ('1', 'true', 'yes')
+    allow_multiprocessing = os.environ.get('CLAMP_ALLOW_MULTIPROCESSING', '').lower() in ('1', 'true', 'yes')
     
-    if (force_single_worker or _is_jupyter_environment()) and num_workers > 0:
-        if force_single_worker:
-            print(f"Warning: CLAMP_FORCE_SINGLE_WORKER environment variable set. Setting num_workers=0")
-        else:
-            print(f"Warning: Jupyter environment detected. Setting num_workers=0 to avoid shared memory issues.")
+    if force_single_worker and num_workers > 0:
+        print(f"Warning: CLAMP_FORCE_SINGLE_WORKER environment variable set. Setting num_workers=0")
+        print(f"  (Requested {num_workers} workers, but using 0 due to CLAMP_FORCE_SINGLE_WORKER)")
+        num_workers = 0
+    elif _is_jupyter_environment() and num_workers > 0 and not allow_multiprocessing:
+        print(f"Warning: Jupyter environment detected. Setting num_workers=0 to avoid shared memory issues.")
         print(f"  (Requested {num_workers} workers, but using 0 due to limited /dev/shm)")
+        print(f"  To try multiple workers anyway, set: export CLAMP_ALLOW_MULTIPROCESSING=1")
         num_workers = 0
     
     # Set pin_memory: False if num_workers > 0 (avoids shared memory issues on systems with limited /dev/shm)
@@ -505,15 +508,24 @@ def get_dataloader(info:dict,batch_size:int,num_workers:int,
     pin_memory = (num_workers == 0)
     # persistent_workers only works with num_workers > 0
     use_persistent_workers = (num_workers > 0)
+    # prefetch_factor only works with num_workers > 0, must be None when num_workers == 0
+    use_prefetch_factor = prefetch_factor if num_workers > 0 else None
+    # Use 'spawn' context in Jupyter environments to reduce shared memory usage
+    # 'spawn' creates new processes instead of forking, which uses less shared memory
+    multiprocessing_context = 'spawn' if (num_workers > 0 and _is_jupyter_environment()) else None
+    
     train_loader = torch.utils.data.DataLoader(train_dataset,batch_size = batch_size,shuffle=True,drop_last=True,
-                                               num_workers=num_workers,pin_memory=pin_memory,persistent_workers=use_persistent_workers,prefetch_factor=prefetch_factor)
+                                               num_workers=num_workers,pin_memory=pin_memory,persistent_workers=use_persistent_workers,
+                                               prefetch_factor=use_prefetch_factor,multiprocessing_context=multiprocessing_context)
     test_loader = torch.utils.data.DataLoader(test_dataset,batch_size = batch_size,shuffle=False,drop_last=True,
-                                              num_workers = num_workers,pin_memory=pin_memory,persistent_workers=use_persistent_workers,prefetch_factor=prefetch_factor)
+                                              num_workers = num_workers,pin_memory=pin_memory,persistent_workers=use_persistent_workers,
+                                              prefetch_factor=use_prefetch_factor,multiprocessing_context=multiprocessing_context)
     if skip_validation:
         val_loader = None
     else:
         val_loader = torch.utils.data.DataLoader(val_dataset,batch_size = batch_size,shuffle=False,drop_last=True,
-                                                 num_workers = num_workers,pin_memory=pin_memory,persistent_workers=use_persistent_workers,prefetch_factor=prefetch_factor)
+                                                 num_workers = num_workers,pin_memory=pin_memory,persistent_workers=use_persistent_workers,
+                                                 prefetch_factor=use_prefetch_factor,multiprocessing_context=multiprocessing_context)
         if len(val_dataset) < batch_size:
             print("Validation dataset is smaller than batch size, it may cause error. Try decreasing the batch size")
         if len(test_dataset) < batch_size:
