@@ -2,12 +2,21 @@ import torch
 from matplotlib import pyplot as plt
 import numpy as np
 import re
+import os
 from PIL import Image
 from torch.utils.data import random_split,Dataset
 from torchvision import datasets
 from torchvision.transforms import v2
 from .lmdb_dataset import ImageFolderLMDB
 import cv2
+
+# Detect Jupyter/JupyterHub environment - shared memory is often limited
+def _is_jupyter_environment():
+    """Check if running in Jupyter/JupyterHub environment"""
+    return ('JUPYTER' in os.environ or 
+            'JPY_PARENT_PID' in os.environ or 
+            os.path.exists('/home/jovyan') or  # JupyterHub default
+            'jupyter' in str(os.environ.get('_', '').lower()))
 
 # Headless/opencv-python-headless can omit depth constants; patch for compatibility (e.g. albumentations).
 if not hasattr(cv2, "CV_8U"):
@@ -477,7 +486,21 @@ def get_dataloader(info:dict,batch_size:int,num_workers:int,
             val_dataset = WrappedDataset(val_dataset,train_transforms,n_views = info["n_views"],aug_pkg=aug_pkg)
         else:
             val_dataset = WrappedDataset(val_dataset,test_transforms,n_views=1)
-    # Set pin_memory: False if num_workers > 0 (avoids shared memory issues on Jupyter Hub/systems with limited /dev/shm)
+    
+    # Handle shared memory issues on Jupyter Hub/systems with limited /dev/shm
+    # PyTorch uses shared memory for tensor collation even with pin_memory=False when num_workers > 0
+    # Check for environment variable override first
+    force_single_worker = os.environ.get('CLAMP_FORCE_SINGLE_WORKER', '').lower() in ('1', 'true', 'yes')
+    
+    if (force_single_worker or _is_jupyter_environment()) and num_workers > 0:
+        if force_single_worker:
+            print(f"Warning: CLAMP_FORCE_SINGLE_WORKER environment variable set. Setting num_workers=0")
+        else:
+            print(f"Warning: Jupyter environment detected. Setting num_workers=0 to avoid shared memory issues.")
+        print(f"  (Requested {num_workers} workers, but using 0 due to limited /dev/shm)")
+        num_workers = 0
+    
+    # Set pin_memory: False if num_workers > 0 (avoids shared memory issues on systems with limited /dev/shm)
     # True if num_workers == 0 (single-threaded, no shared memory needed)
     pin_memory = (num_workers == 0)
     # persistent_workers only works with num_workers > 0
