@@ -477,15 +477,20 @@ def get_dataloader(info:dict,batch_size:int,num_workers:int,
             val_dataset = WrappedDataset(val_dataset,train_transforms,n_views = info["n_views"],aug_pkg=aug_pkg)
         else:
             val_dataset = WrappedDataset(val_dataset,test_transforms,n_views=1)
+    # Set pin_memory: False if num_workers > 0 (avoids shared memory issues on Jupyter Hub/systems with limited /dev/shm)
+    # True if num_workers == 0 (single-threaded, no shared memory needed)
+    pin_memory = (num_workers == 0)
+    # persistent_workers only works with num_workers > 0
+    use_persistent_workers = (num_workers > 0)
     train_loader = torch.utils.data.DataLoader(train_dataset,batch_size = batch_size,shuffle=True,drop_last=True,
-                                               num_workers=num_workers,pin_memory=True,persistent_workers=True,prefetch_factor=prefetch_factor)
+                                               num_workers=num_workers,pin_memory=pin_memory,persistent_workers=use_persistent_workers,prefetch_factor=prefetch_factor)
     test_loader = torch.utils.data.DataLoader(test_dataset,batch_size = batch_size,shuffle=False,drop_last=True,
-                                              num_workers = num_workers,pin_memory=True,persistent_workers=True,prefetch_factor=prefetch_factor)
+                                              num_workers = num_workers,pin_memory=pin_memory,persistent_workers=use_persistent_workers,prefetch_factor=prefetch_factor)
     if skip_validation:
         val_loader = None
     else:
         val_loader = torch.utils.data.DataLoader(val_dataset,batch_size = batch_size,shuffle=False,drop_last=True,
-                                                 num_workers = num_workers,pin_memory=True,persistent_workers=True,prefetch_factor=prefetch_factor)
+                                                 num_workers = num_workers,pin_memory=pin_memory,persistent_workers=use_persistent_workers,prefetch_factor=prefetch_factor)
         if len(val_dataset) < batch_size:
             print("Validation dataset is smaller than batch size, it may cause error. Try decreasing the batch size")
         if len(test_dataset) < batch_size:
