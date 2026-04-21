@@ -186,6 +186,8 @@ class CLAMP(pl.LightningModule):
         gc.collect()
         torch.cuda.empty_cache()
     def on_after_backward(self):
+        if self.global_step % 100 != 0:
+            return
         # Calculate the total gradient norm for all parameters
         convnet_norm = 0.0
         convnet_grad_norm = 0.0
@@ -316,9 +318,10 @@ class CLAMP(pl.LightningModule):
             return
         for logger in self.loggers:
             if isinstance(logger, TensorBoardLogger):
-                logger.experiment.add_histogram("radii", self.loss_fn.record["radii"], self.global_step)
-                logger.experiment.add_histogram("norm_center", self.loss_fn.record["norm_center"], self.global_step)
-                logger.experiment.add_histogram("dist", self.loss_fn.record["dist"], self.global_step)
+                for key in ["radii", "norm_center", "dist"]:
+                    val = self.loss_fn.record.get(key)
+                    if val is not None and val.numel() > 0 and not torch.isnan(val).all():
+                        logger.experiment.add_histogram(key, val, self.global_step)
 
 def train_clamp(model:pl.LightningModule, train_loader: torch.utils.data.DataLoader,
             val_loader:torch.utils.data.DataLoader,
@@ -348,6 +351,7 @@ def train_clamp(model:pl.LightningModule, train_loader: torch.utils.data.DataLoa
                          precision=precision,
                          strategy=effective_strategy,
                          max_epochs=max_epochs,
+                         check_val_every_n_epoch=5,
                          callbacks=[pl.callbacks.ModelCheckpoint(save_top_k = -1,
                                                                   save_last = True,
                                                                   every_n_epochs = every_n_epochs,
